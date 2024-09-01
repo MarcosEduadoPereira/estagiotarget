@@ -1,41 +1,63 @@
 package estagio01;
 
+import org.json.JSONArray;
+import org.json.JSONObject;
+
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+
 public class Faturamento {
+
     public static void main(String[] args) {
-        // Array com valores de faturamento diário
-        double[] faturamento = {1000.00, 1500.00, 2000.00, 1200.00, 1100.00, 0, 0, 1300.00, 1400.00, 0, 1500.00, 0};
+        String caminhoArquivo = "faturamento.json"; // Substitua pelo caminho do seu arquivo JSON
 
-        double soma = 0;
-        double menor = faturamento[0];
-        double maior = faturamento[0];
-        int count = 0;
-
-        // Calcula a soma, menor e maior valor de faturamento
-        for (int i = 0; i < faturamento.length; i++) {
-            double valor = faturamento[i];
-            if (valor > 0) {
-                soma += valor;
-                count++;
-                if (valor < menor) menor = valor;
-                if (valor > maior) maior = valor;
+        try {
+            // Ler o arquivo JSON
+            BufferedReader reader = new BufferedReader(new FileReader(caminhoArquivo));
+            StringBuilder sb = new StringBuilder();
+            String linha;
+            while ((linha = reader.readLine()) != null) {
+                sb.append(linha);
             }
-        }
+            reader.close();
 
-        // Calcula a média
-        double media = soma / count;
+            // Parse o JSON
+            JSONObject jsonObject = new JSONObject();
+            JSONArray faturamentoArray = jsonObject.getJSONArray("faturamento");
 
-        int diasAcimaMedia = 0;
-
-        // Conta os dias com faturamento acima da média
-        for (int i = 0; i < faturamento.length; i++) {
-            if (faturamento[i] > media) {
-                diasAcimaMedia++;
+            // Processar os dados
+            List<Double> faturamentos = new ArrayList<>();
+            for (int i = 0; i < faturamentoArray.length(); i++) {
+                JSONObject item = faturamentoArray.getJSONObject(i);
+                double valor = item.getDouble("valor");
+                if (valor > 0) {
+                    faturamentos.add(valor);
+                }
             }
-        }
 
-        // Exibe os resultados
-        System.out.println("Menor valor de faturamento: R$" + menor);
-        System.out.println("Maior valor de faturamento: R$" + maior);
-        System.out.println("Número de dias acima da média: " + diasAcimaMedia);
+            if (faturamentos.isEmpty()) {
+                System.out.println("Não há faturamento válido para processamento.");
+                return;
+            }
+
+            double menorValor = faturamentos.stream().min(Double::compare).orElse(Double.NaN);
+            double maiorValor = faturamentos.stream().max(Double::compare).orElse(Double.NaN);
+            double mediaMensal = faturamentos.stream().mapToDouble(Double::doubleValue).average().orElse(0.0);
+
+            long diasAcimaDaMedia = faturamentos.stream().filter(valor -> valor > mediaMensal).count();
+
+            // Exibir resultados
+            System.out.println("Menor valor de faturamento: " + menorValor);
+            System.out.println("Maior valor de faturamento: " + maiorValor);
+            System.out.println("Número de dias acima da média: " + diasAcimaDaMedia);
+
+        } catch (IOException e) {
+            System.err.println("Erro ao ler o arquivo: " + e.getMessage());
+        } catch (Exception e) {
+            System.err.println("Erro ao processar o JSON: " + e.getMessage());
+        }
     }
 }
